@@ -17,10 +17,7 @@ func createPluginSkeleton(info PluginInfo) error {
 	// check if output directory exists, if not create it, if exists, return error
 	stat, err := os.Stat(info.Output)
 	if os.IsNotExist(err) {
-		if err := os.MkdirAll(info.Output, 0755); err != nil {
-			return err
-		}
-		if err := os.MkdirAll(info.Output + "/src", 0755); err != nil {
+		if err := os.MkdirAll(info.Output+"/src", 0755); err != nil {
 			return err
 		}
 	} else {
