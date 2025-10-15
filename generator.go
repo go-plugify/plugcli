@@ -5,18 +5,22 @@ import (
 	"embed"
 	"fmt"
 	"os"
+	"strings"
 	"text/template"
 	"time"
 )
 
-//go:embed tmpl/*.tmpl
+//go:embed tmpl
 var templatesFS embed.FS
 
 func createPluginSkeleton(info PluginInfo) error {
-	// check if output directory exists, if not create it, if exists, do nothing
+	// check if output directory exists, if not create it, if exists, return error
 	stat, err := os.Stat(info.Output)
 	if os.IsNotExist(err) {
 		if err := os.MkdirAll(info.Output, 0755); err != nil {
+			return err
+		}
+		if err := os.MkdirAll(info.Output + "/src", 0755); err != nil {
 			return err
 		}
 	} else {
@@ -31,10 +35,11 @@ func createPluginSkeleton(info PluginInfo) error {
 		}
 	}
 	info.NowTime = time.Now().Format("20060102150405")
-	tmpls := template.Must(template.ParseFS(templatesFS, "tmpl/*.tmpl"))
+	tmpls := template.Must(template.ParseFS(templatesFS, "tmpl/**/*.tmpl", "tmpl/*.tmpl"))
 	for _, fileName := range fileNames {
 		var buf bytes.Buffer
-		err := tmpls.ExecuteTemplate(&buf, fileName+".tmpl", info)
+		var baseFileName = strings.ReplaceAll(fileName, "src/", "")
+		err = tmpls.ExecuteTemplate(&buf, baseFileName+".tmpl", info)
 		if err != nil {
 			return err
 		}
@@ -47,8 +52,8 @@ func createPluginSkeleton(info PluginInfo) error {
 }
 
 var fileNames = []string{
-	"plugin.go",
-	"define.go",
+	"src/plugin.go",
+	"src/define.go",
 	"Makefile",
-	"go.mod",
+	"src/go.mod",
 }
