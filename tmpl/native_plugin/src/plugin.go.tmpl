@@ -1,0 +1,37 @@
+package main
+
+func init() {
+	ExportPlugin.Name = "{{.Name}}"
+	ExportPlugin.Description = "{{.Description}}"
+	ExportPlugin.Version = "v{{.Version}}"
+}
+
+// Run is called when the plugin is executed.
+func (p Plugin) Run(args any) (any, error) {
+	p.Logger().Info("Plugin %s is running", p.Name)
+	// p.GetGinEngine().ReplaceHandler("GET", "/", func(ctx context.Context) {
+	// 	ctx.(HttpContext).JSON(200, map[string]string{"message": "Hello from example plugin !!!"})
+	// })
+	// bookService := NewBookService(p.Component("bookService"), p)
+	// bookService.AddBook(Book{ID: 1, Title: "1984", Author: "George Orwell"})
+	// bookService.AddBook(Book{ID: 2, Title: "To Kill a Mockingbird", Author: "Harper Lee"})
+	// bookService.DeleteBook(1)
+	return map[string]any{
+		"message":  "Plugin executed successfully",
+		// "load pkg": pkg.SayHello(),
+		// "books":    bookService.ListBooks(),
+	}, nil
+}
+
+// Methods returns a map of method names to functions that can be called on the plugin.
+func (p Plugin) Methods() map[string]func(any) any {
+	return map[string]func(any) any{
+		// "add": func(args any) any {
+		// 	nums := args.([]int)
+		// 	if len(nums) != 2 {
+		// 		return 0
+		// 	}
+		// 	return nums[0] + nums[1]
+		// },
+	}
+}

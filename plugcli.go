@@ -24,9 +24,12 @@ func Execute() {
 }
 
 type PluginInfo struct {
+	ID          string
 	Name        string
 	Description string
 	Version     string
+	ServerAddr  string
+	Author      string
 	NowTime     string
 	Output      string
 }
@@ -39,14 +42,40 @@ var createCmd = &cobra.Command{
 		name := args[0]
 		info := PluginInfo{Name: name}
 
+		clientType := ""
+		prompt := &survey.Select{
+			Message: "Choose client script language:",
+			Options: []string{"yaegi", "native_go_plugin"},
+			Default: "yaegi",
+		}
+		err := survey.AskOne(prompt, &clientType)
+		if err != nil {
+			return err
+		}
+
 		qs := []*survey.Question{
+			{
+				Name:     "id",
+				Prompt:   &survey.Input{Message: "Plugin unique ID:"},
+				Validate: survey.Required,
+			},
 			{
 				Name:   "description",
 				Prompt: &survey.Input{Message: "Plugin description:"},
 			},
 			{
-				Name:   "version",
-				Prompt: &survey.Input{Message: "Version:", Default: "0.0.1"},
+				Name:     "version",
+				Prompt:   &survey.Input{Message: "Version:", Default: "0.0.1"},
+				Validate: survey.Required,
+			},
+			{
+				Name:   "author",
+				Prompt: &survey.Input{Message: "Author:", Default: "Your Name"},
+			},
+			{
+				Name:     "serverAddr",
+				Prompt:   &survey.Input{Message: "Server API address:", Default: "http://localhost:8080/api/v1"},
+				Validate: survey.Required,
 			},
 			{
 				Name:   "output",
@@ -59,8 +88,15 @@ var createCmd = &cobra.Command{
 		}
 
 		fmt.Println("✔ Creating plugin skeleton...")
-		if err := createPluginSkeleton(info); err != nil {
-			return err
+		switch clientType {
+		case "native_go_plugin":
+			if err := createPluginSkeletonOfNativePlugin(info); err != nil {
+				return err
+			}
+		case "yaegi":
+			if err := createPluginSkeletonOfYaegi(info); err != nil {
+				return err
+			}
 		}
 		fmt.Println("✔ Successfully created at:", info.Output)
 		return nil

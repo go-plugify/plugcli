@@ -19,8 +19,13 @@ type PluginComponents interface {
 	GetComponents() any
 }
 
-func (p *BasePlugin) Load(components any) {
+func (p *BasePlugin) Load(components any) error {
 	p.Components = components.(PluginComponents)
+	return nil
+}
+
+func (p *BasePlugin) Destroy(args any) error {
+	return nil
 }
 
 type Plugin struct {
@@ -47,6 +52,7 @@ type Logger interface {
 type Util interface {
 	GetAttr(obj any, attrName string) any
 	CallMethod(obj any, methodName string, args ...any) ([]any, error)
+	ConvertTo(src, dist any) error
 }
 
 type Components interface {
@@ -72,6 +78,15 @@ func (p Plugin) GetAttr(obj any, attrName string) any {
 
 func (p Plugin) CallMethod(obj any, methodName string, args ...any) ([]any, error) {
 	return p.Components.GetUtil().(Util).CallMethod(obj, methodName, args...)
+}
+
+func (p Plugin) CallIgnore(obj any, methodName string, args ...any) []any {
+	resp, _ := p.Components.GetUtil().(Util).CallMethod(obj, methodName, args...)
+	return resp
+}
+
+func (p Plugin) ConvertTo(src, dist any) error {
+	return p.Components.GetUtil().(Util).ConvertTo(src, dist)
 }
 
 type HttpContext interface {

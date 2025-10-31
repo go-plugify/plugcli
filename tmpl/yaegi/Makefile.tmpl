@@ -1,0 +1,119 @@
+# Plugin configuration
+PLUGIN_ID := {{.ID}}
+PLUGIN_NAME := {{.Name}}
+PLUGIN_DESCRIPTION := {{.Description}}
+PLUGIN_AUTHOR := {{.Author}}
+PLUGIN_VERSION := v{{.Version}}
+PLUGIN_LOADER := yaegi_http
+
+# Server configuration
+SERVER_URL := {{.ServerAddr}}
+API_ENDPOINT := $(SERVER_URL)/plugin
+
+# File configuration
+PLUGIN_FILE := main.go
+
+define PLUGIN_META
+{
+  "id": "$(PLUGIN_ID)",
+  "name": "$(PLUGIN_NAME)",
+  "description": "$(PLUGIN_DESCRIPTION)",
+  "author": "$(PLUGIN_AUTHOR)",
+  "version": "$(PLUGIN_VERSION)",
+  "loader": "$(PLUGIN_LOADER)"
+}
+endef
+
+FORMAT_META := $(shell echo '$(PLUGIN_META)' | tr -d '\n' | tr -s ' ' | sed 's/"/\\"/g')
+
+# Curl options
+CURL_OPTS := --insecure -s
+CURL_POST_OPTS := $(CURL_OPTS) -X POST
+
+# Common curl command templates
+define CURL_GET
+curl $(CURL_OPTS) "$(API_ENDPOINT)/$(1)$(2)" $(if $(FORMAT_JSON), | jq)
+endef
+
+define CURL_POST
+curl $(CURL_POST_OPTS) "$(API_ENDPOINT)/$(1)$(2)" $(if $(FORMAT_JSON), | jq)
+endef
+
+define CURL_UPLOAD
+curl $(CURL_POST_OPTS) \
+    -F "file=@$(PLUGIN_FILE)" \
+    -F "meta=$(FORMAT_META)" \
+    "$(API_ENDPOINT)/$(1)" $(if $(FORMAT_JSON), | jq)
+endef
+
+.PHONY: init list run load unload upload check-file help show-meta
+
+update:
+	@go mod tidy
+	cd plugify && go mod tidy
+
+# Initialize/upload a plugin
+init: check-file
+	@echo "Uploading plugin: $(PLUGIN_ID)..."
+	@$(call CURL_UPLOAD,init)
+
+# Load a plugin but not run it
+load: check-file
+	@echo "Loading plugin: $(PLUGIN_ID)..."
+	@$(call CURL_UPLOAD,load)
+
+# List all plugins
+list:
+	@echo "Listing all plugins..."
+	@$(call CURL_GET,list)
+
+# Run/execute a plugin
+run:
+	@echo "Running plugin: $(PLUGIN_ID)..."
+	@$(call CURL_POST,run,?plugin_id=$(PLUGIN_ID))
+
+# Unload a plugin
+unload:
+	@echo "Unloading plugin: $(PLUGIN_ID)..."
+	@$(call CURL_POST,unload,?plugin_id=$(PLUGIN_ID))
+
+# Show plugin metadata
+show-meta:
+	@echo "Original formatted JSON:"
+	@echo '$(PLUGIN_META)'
+	@echo ""
+	@echo "Single-line with escaped quotes:"
+	@echo "$(FORMAT_META)"
+
+# Check if plugin file exists
+check-file:
+	@test -f $(PLUGIN_FILE) || (echo "Error: $(PLUGIN_FILE) not found" && exit 1)
+
+# Display help information
+help:
+	@echo "Available targets:"
+	@echo "  init       - initialize plugin to server"
+	@echo "  load       - Load plugin to server"
+	@echo "  list       - List all plugins on server"
+	@echo "  run        - Run/execute plugin"
+	@echo "  unload     - Unload plugin from server"
+	@echo "  show-meta  - Show plugin metadata (formatted and single-line)"
+	@echo "  check-file - Check if plugin file exists"
+	@echo "  help       - Show this help message"
+	@echo ""
+	@echo "Configuration:"
+	@echo "  Plugin ID:     $(PLUGIN_ID)"
+	@echo "  Plugin Name:   $(PLUGIN_NAME)"
+	@echo "  Plugin File:   $(PLUGIN_FILE)"
+	@echo "  Plugin Version: $(PLUGIN_VERSION)"
+	@echo "  Server URL:    $(SERVER_URL)"
+	@echo ""
+	@echo "Usage examples:"
+	@echo "  make init"
+	@echo "  make upload"
+	@echo "  make show-meta"
+	@echo "  make run PLUGIN_ID=my-plugin"
+	@echo "  make upload PLUGIN_VERSION=v1.0.0 SERVER_URL=https://prod.example.com"
+
+# Override variables from command line or environment
+# Example: make upload PLUGIN_VERSION=v1.0.0 SERVER_URL=https://prod.example.com
